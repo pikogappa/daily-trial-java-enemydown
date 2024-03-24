@@ -94,7 +94,6 @@ public class EnemyDownCommand extends BaseCommand implements CommandExecutor, Li
     PlayerScore playerScore = new PlayerScore(player.getName());
     if (playerScoreList.isEmpty()) {
       playerScore = addNewPlayer(player);
-      return playerScore;
     } else {
       playerScore = playerScoreList.stream().findFirst()
           .map(ps -> ps.getPlayerName().equals(player.getName())
