@@ -19,6 +19,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.potion.PotionEffect;
 import plugin.enemydown.Main;
 import plugin.enemydown.data.PlayerScore;
 
@@ -68,22 +69,25 @@ public class EnemyDownCommand extends BaseCommand implements CommandExecutor, Li
   public void onEnemyDeath(EntityDeathEvent e) {
     LivingEntity enemy = e.getEntity();
     Player player = enemy.getKiller();
-    if (Objects.isNull(player) || playerScoreList.isEmpty()) {
+
+    if (Objects.isNull(player) || spawnEntityList.stream()
+        .noneMatch(entity -> entity.equals(enemy))) {
       return;
     }
 
-    for(PlayerScore playerScore : playerScoreList) {
-      if (playerScore.getPlayerName().equals(player.getName())) {
-        int point = switch (enemy.getType()) {
-          case ZOMBIE, SPIDER -> 10;
-          case SKELETON -> 20;
-          default -> 0;
-        };
-        playerScore.setScore(playerScore.getScore() + point);
-        player.sendMessage("敵を倒した！現在のスコアは" + playerScore.getScore() +"点");
-      }
+    playerScoreList.stream()
+        .filter(p -> p.getPlayerName().equals(player.getName()))
+        .findFirst()
+        .ifPresent(p -> {
+          int point = switch (enemy.getType()) {
+            case ZOMBIE, SPIDER -> 10;
+            case SKELETON -> 20;
+            default -> 0;
+          };
+          p.setScore(p.getScore() + point);
+          player.sendMessage("敵を倒した！現在のスコアは" + p.getScore() +"点");
+        });
     }
-  }
 
   /**
    * 現在実行しているプレイヤーのスコア情報を取得する。
@@ -92,6 +96,7 @@ public class EnemyDownCommand extends BaseCommand implements CommandExecutor, Li
    */
   private PlayerScore getPlayerScore(Player player) {
     PlayerScore playerScore = new PlayerScore(player.getName());
+
     if (playerScoreList.isEmpty()) {
       playerScore = addNewPlayer(player);
     } else {
@@ -100,6 +105,7 @@ public class EnemyDownCommand extends BaseCommand implements CommandExecutor, Li
               ? ps
               : addNewPlayer(player)).orElse(playerScore);
     }
+
     playerScore.setGameTime(GAME_TIME);
     System.out.println(playerScore.getGameTime());
     playerScore.setScore(0);
@@ -140,7 +146,7 @@ public class EnemyDownCommand extends BaseCommand implements CommandExecutor, Li
             0,60, 0);
 
         spawnEntityList.forEach(Entity::remove);
-
+        spawnEntityList = new ArrayList<>();
         return;
       }
       Entity spawnEntity = player.getWorld().spawnEntity(getEnemySpawnLocation(player), getEnemy());
