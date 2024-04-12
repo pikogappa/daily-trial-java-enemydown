@@ -75,38 +75,16 @@ public class EnemyDownCommand extends BaseCommand implements CommandExecutor, Li
       try(SqlSession session = sqlSessionFactory.openSession()) {
         PlayerScoreMapper mapper = session.getMapper(PlayerScoreMapper.class);
         List<PlayerScore> playerScoreList = mapper.selectList();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         for (PlayerScore playerScore : playerScoreList) {
-          LocalDateTime date = LocalDateTime.parse(playerScore.getRegisteredAt(), formatter);
           player.sendMessage(playerScore.getId() + " | "
               + playerScore.getPlayerName() + " | "
               + playerScore.getScore() + " | "
               + playerScore.getDifficulty() + " | "
-              + date.format(formatter));
+              + playerScore.getRegisteredAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         }
       }
-
-//      try(Connection con = DriverManager.getConnection(
-//              "jdbc:mysql://localhost:3306/spigot_server",
-//              "root",
-//              "BsWQ9j58");
-//              Statement statement = con.createStatement();
-//              ResultSet resultset = statement.executeQuery("select * from player_score")) {
-//            while (resultset.next()){
-//              int id = resultset.getInt("id");
-//              String name = resultset.getString("player_name");
-//              int score = resultset.getInt("score");
-//              String difficulty = resultset.getString("difficulty");
-//
-//              DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-//              LocalDateTime date = LocalDateTime.parse(resultset.getString("registered_at"), formatter);
-//              player.sendMessage(id+ " | " + name + " | " + score + " | " + difficulty + " | " + date.format(formatter));
-//            }
-//          } catch (SQLException e){
-//            e.printStackTrace();
-//          }
-          return false;
+      return false;
     }
 
     String difficulty = getDifficulty(player, args);
@@ -239,24 +217,20 @@ public class EnemyDownCommand extends BaseCommand implements CommandExecutor, Li
             nowExecutingPlayer.getPlayerName() + nowExecutingPlayer.getScore() + "点！",
             0,60, 0);
 
-        try(Connection con = DriverManager.getConnection(
-            "jdbc:mysql://localhost:3306/spigot_server",
-            "root",
-            "BsWQ9j58");
-            Statement statement = con.createStatement()){
-          statement.executeUpdate(
-              "insert player_score(player_name, score, difficulty, registered_at) "
-                  + "values('" + nowExecutingPlayer.getPlayerName()
-                  + "', " + nowExecutingPlayer.getScore()
-                  + ", '" + difficulty + "', now());");
-          } catch (SQLException e){
-          e.printStackTrace();
-        }
-
         spawnEntityList.forEach(Entity::remove);
         spawnEntityList.clear();
 
         removePotionEffect(player);
+
+        // スコア登録処理
+        try(SqlSession session = sqlSessionFactory.openSession(true)) {
+          PlayerScoreMapper mapper = session.getMapper(PlayerScoreMapper.class);
+          mapper.insert(
+              new PlayerScore(nowExecutingPlayer.getPlayerName()
+                  , nowExecutingPlayer.getScore()
+                  , difficulty));
+        }
+
         return;
       }
       Entity spawnEntity = player.getWorld().spawnEntity(getEnemySpawnLocation(player), getEnemy(difficulty));
