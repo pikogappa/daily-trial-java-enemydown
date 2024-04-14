@@ -98,7 +98,7 @@ public class EnemyDownCommand extends BaseCommand implements CommandExecutor, Li
    * @return 難易度
    */
 
-  private String getDifficulty(Player player, String[] args) {
+  String getDifficulty(Player player, String[] args) {
     if (args.length == 1 && EASY.equals(args[0]) || NORMAL.equals(args[0]) || HARD.equals(args[0])) {
       return args[0];
     }
